@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unlimited Page Corps | Paperhouse Inc.</title>
+    
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0f7ff', 500: '#0088ff', 600: '#0066cc', 900: '#002244' },
+                        diamond: '#7dd3fc',
+                        platinum: '#e2e8f0'
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shimmer-diamond': 'shimmerDiamond 2.5s ease-in-out infinite',
+                        'shimmer-platinum': 'shimmerPlatinum 3s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        shimmerDiamond: {
+                            '0%, 100%': { boxShadow: '0 0 15px rgba(125, 211, 252, 0.4), inset 0 0 15px rgba(224, 242, 254, 0.6)' },
+                            '50%': { boxShadow: '0 0 30px rgba(56, 189, 248, 0.9), inset 0 0 25px rgba(255, 255, 255, 0.9)' }
+                        },
+                        shimmerPlatinum: {
+                            '0%, 100%': { boxShadow: '0 0 12px rgba(226, 232, 240, 0.3)' },
+                            '50%': { boxShadow: '0 0 25px rgba(248, 250, 252, 0.8)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase SDKs (v9.23.0 Compat mode for stability) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+    <!-- Ad Provider SDK -->
+    <script src="//libtl.com/sdk.js" data-zone="10555663" data-sdk="show_10555663"></script>
+
+    <style>
+        /* Card Aesthetics */
+        .card-diamond {
+            background: linear-gradient(135deg, rgba(224, 242, 254, 0.9) 0%, rgba(125, 211, 252, 0.85) 50%, rgba(56, 189, 248, 0.9) 100%);
+            border: 1.5px solid #bae6fd;
+        }
+        .card-platinum {
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(203, 213, 225, 0.85) 50%, rgba(241, 245, 249, 0.95) 100%);
+            border: 1.5.px solid #cbd5e1;
+        }
+        .card-gold {
+            background: linear-gradient(135deg, rgba(254, 240, 138, 0.9) 0%, rgba(234, 179, 8, 0.85) 100%);
+            border: 1.5px solid #fef08a;
+        }
+        .card-obsidian {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-cyan-500 selection:text-black">
+
+    <!-- Paperhouse Inc. Executive Bar -->
+    <section id="paperhouse-section" class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-b border-blue-800/40 py-2.5 px-4 shadow-lg sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center text-xs">
+            <div class="flex items-center gap-3">
+                <span class="bg-blue-600/30 text-blue-300 border border-blue-500/40 font-bold px-2.5 py-0.5 rounded-full tracking-wider uppercase">
+                    Paperhouse Inc.
+                </span>
+                <span class="hidden md:inline-flex items-center gap-1.5 text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Node Engine Active
+                </span>
+            </div>
+
+            <!-- Ad System Status Bar -->
+            <div class="flex items-center gap-3">
+                <button onclick="app.watchRewardedAd()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-md transition text-xs font-semibold flex items-center gap-1.5">
+                    <i class="fas fa-gem text-amber-400"></i> Watch Ad (Reward)
+                </button>
+                <div id="ad-cooldown-badge" class="bg-slate-800 border border-slate-700 text-slate-300 px-2.5 py-1 rounded-md text-[11px] flex items-center gap-1.5">
+                    <i class="fas fa-clock text-blue-400"></i> Ad Timer: <span id="ad-timer-text" class="font-mono text-cyan-400">05:00</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Dynamic Header -->
+    <header class="bg-slate-900/80 border-b border-slate-800 px-4 py-3 sticky top-[41px] z-40 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="app.switchView('feed')">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-black text-black shadow-lg shadow-cyan-500/20">
+                    ∞
+                </div>
+                <div>
+                    <h1 class="font-black text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        Unlimited Page Corps
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Instant Keypad Quick Generator -->
+            <div class="hidden lg:flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-500 px-2">Quick Gen:</span>
+                <template id="num-btn-template">
+                    <!-- Dynamic rendering -->
+                </template>
+                <div id="quick-number-pad" class="flex gap-1"></div>
+            </div>
+
+            <!-- Active Profile Capsule -->
+            <div onclick="app.switchView('profile')" class="flex items-center gap-3 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 px-3 py-1.5 rounded-full cursor-pointer transition">
+                <img id="nav-pfp" src="https://api.dicebear.com/7.x/bottts/svg?seed=CorpsUser" class="w-7 h-7 rounded-full bg-slate-700 object-cover">
+                <span id="nav-username" class="text-xs font-semibold text-slate-200 max-w-[100px] truncate">Agent</span>
+                <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 mb-24">
+        
+        <!-- ================= VIEW 1: PUBLIC FEED AREA ================= -->
+        <section id="view-feed" class="view space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <div>
+                    <h2 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                        <i class="fas fa-globe text-cyan-400"></i> Public Discovery Area
+                    </h2>
+                    <p class="text-xs text-slate-400">Showing 30 randomized cards from public node pages across the network.</p>
+                </div>
+                <button onclick="app.refreshFeed()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg shadow-cyan-500/20 flex items-center gap-2 w-fit">
+                    <i class="fas fa-arrows-rotate"></i> Refresh Matrix
+                </button>
+            </div>
+
+            <!-- Card Grid -->
+            <div id="public-feed-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Dynamically injected small cards with shining tiers -->
+            </div>
+        </section>
+
+        <!-- ================= VIEW 2: AUTO / MANUAL PAGE CREATOR ================= -->
+        <section id="view-create" class="view hidden">
+            <div class="max-w-lg mx-auto bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-6">
+                <div class="text-center space-y-1">
+                    <div class="w-12 h-12 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <h2 class="text-xl font-bold">Generate Node Page</h2>
+                    <p class="text-xs text-slate-400">Create unlimited sub-pages anchored to numbers (1–9). Fast auto-routing enabled.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Target Page Number (1-9 or Custom)</label>
+                        <input type="number" id="page-number-input" placeholder="e.g. 7" min="1" max="999999" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Page Alias / Custom Name</label>
+                        <input type="text" id="page-name-input" placeholder="e.g. Neo Tokyo Hub" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Visibility Level</label>
+                        <select id="page-privacy" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-500 transition">
+                            <option value="public">🌐 Public (Appears in Discovery Feed)</option>
+                            <option value="private">🔒 Private (Direct ID Access Only)</option>
+                        </select>
+                    </div>
+
+                    <button onclick="app.createPage()" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold p-3 rounded-xl text-sm transition shadow-lg shadow-cyan-500/20">
+                        GENERATE NOW & PROCEED
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 3: DYNAMIC PAGE WORKSPACE ================= -->
+        <section id="view-page" class="view hidden space-y-6">
+            <!-- Page Header -->
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <span id="display-page-badge" class="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold px-3 py-1 rounded-lg">
+                            NODE #--
+                        </span>
+                        <h2 id="display-page-name" class="text-2xl font-black text-white">Loading Node...</h2>
+                    </div>
+                    <p id="display-page-id" class="text-xs font-mono text-slate-500 mt-1">ID: --</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="app.switchView('create')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl transition">
+                        <i class="fas fa-plus"></i> New Page
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Column 1: Page Groups & Chat Engine -->
+                <div class="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-3xl p-5 flex flex-col h-[650px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                            <i class="fas fa-comments text-cyan-400"></i> Page Groups
+                        </h3>
+                        <button onclick="app.showGroupCreatePrompt()" class="text-xs bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-lg transition">
+                            + Group
+                        </button>
+                    </div>
+
+                    <!-- Groups List -->
+                    <div id="group-list" class="space-y-1.5 overflow-y-auto max-h-36 mb-4 pr-1">
+                        <!-- Dynamic Group Items -->
+                    </div>
+
+                    <!-- Chat Container -->
+                    <div id="chat-container" class="hidden flex-1 flex flex-col border-t border-slate-800 pt-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <span id="active-group-title" class="text-xs font-bold text-cyan-400"># general</span>
+                            <span class="text-[10px] text-slate-500">Last 100 Messages</span>
+                        </div>
+
+                        <!-- Chat Output (Windowed 100 max) -->
+                        <div id="chat-messages" class="flex-1 overflow-y-auto bg-slate-950 border border-slate-800/80 rounded-2xl p-3 space-y-3 text-xs mb-3">
+                            <!-- Messages Injected Here -->
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="flex gap-2">
+                            <input type="text" id="chat-input" placeholder="Type message..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-cyan-500">
+                            <button onclick="app.sendMessage()" class="bg-cyan-500 text-slate-950 hover:bg-cyan-400 px-4 py-2 rounded-xl font-bold transition">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2 & 3: Post Creation & Feed for this page -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Creator Box -->
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-3xl space-y-4">
+                        <h3 class="font-bold text-sm text-slate-200">Publish to Page</h3>
+                        <input id="post-title" type="text" placeholder="Title..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none focus:border-cyan-500">
+                        <textarea id="post-desc" rows="2" placeholder="Description..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none focus:border-cyan-500"></textarea>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Video (Max 300 Secs)</label>
+                                <input type="file" id="post-video" accept="video/*" class="text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-slate-800 file:text-slate-300">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">External Link</label>
+                                <input type="url" id="post-link" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs">
+                            </div>
+                        </div>
+
+                        <button id="btn-upload" onclick="app.uploadPost()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition shadow-lg shadow-cyan-500/20">
+                            Publish Content Node
+                        </button>
+                    </div>
+
+                    <!-- Page Posts List -->
+                    <div id="page-posts" class="space-y-4">
+                        <!-- Dynamic page posts -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VIEW 4: USER PROFILE MANAGEMENT ================= -->
+        <section id="view-profile" class="view hidden">
+            <div class="max-w-md mx-auto bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-6 shadow-2xl">
+                <h2 class="text-xl font-bold text-center">User Identity Settings</h2>
+                <div class="flex flex-col items-center gap-3">
+                    <img id="profile-edit-pfp" src="" class="w-24 h-24 rounded-full border-2 border-cyan-500 object-cover bg-slate-950">
+                    <input type="file" id="pfp-upload" accept="image/*" class="text-xs text-slate-400">
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Display Alias</label>
+                        <input type="text" id="profile-edit-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">User Identification Code</label>
+                        <input type="text" id="profile-user-id" readonly class="w-full bg-slate-950/50 border border-slate-800 text-slate-500 rounded-xl p-3 text-xs font-mono">
+                    </div>
+                    <button onclick="app.saveProfile()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold p-3 rounded-xl text-xs transition">
+                        Update Identity Profile
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/90 border-t border-slate-800 py-2.5 px-6 z-40 backdrop-blur-md">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <button onclick="app.switchView('feed')" class="flex flex-col items-center text-slate-400 hover:text-cyan-400 transition">
+                <i class="fas fa-border-all text-lg"></i>
+                <span class="text-[10px] mt-1 font-semibold">Discovery</span>
+            </button>
+            
+            <button onclick="app.quickGenerateRandomPage()" class="bg-gradient-to-tr from-cyan-500 to-blue-600 text-slate-950 w-12 h-12 rounded-2xl flex items-center justify-center -mt-6 shadow-xl shadow-cyan-500/30 border-4 border-slate-950 font-black text-xl hover:scale-105 transition">
+                +
+            </button>
+
+            <button onclick="app.switchView('profile')" class="flex flex-col items-center text-slate-400 hover:text-cyan-400 transition">
+                <i class="fas fa-user-gear text-lg"></i>
+                <span class="text-[10px] mt-1 font-semibold">Profile</span>
+            </button>
+        </div>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
